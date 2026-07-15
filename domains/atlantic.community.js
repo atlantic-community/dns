@@ -6,4 +6,5 @@ D("atlantic.community", REG_NONE,
 
   ALIAS("@", "atlantic-community.jorgeteixe.workers.dev.", CF_PROXY_ON),
   CNAME("www", "atlantic-community.jorgeteixe.workers.dev.", CF_PROXY_ON),
+  TXT("_gh-atlantic-community-o", "89efcec028"),
 );
