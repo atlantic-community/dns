@@ -3,4 +3,7 @@
 D("atlantic.community", REG_NONE,
   DnsProvider(DNS_PRIMARY),
   DefaultTTL("1h"),
+
+  ALIAS("@", "atlantic-community.jorgeteixe.workers.dev.", CF_PROXY_ON),
+  CNAME("www", "atlantic-community.jorgeteixe.workers.dev.", CF_PROXY_ON),
 );
