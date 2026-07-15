@@ -1,0 +1,23 @@
+name: Validate DNS
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check DNSControl configuration
+        run: >-
+          docker run --rm
+          -v "$PWD:/dns"
+          -w /dns
+          ghcr.io/dnscontrol/dnscontrol:4.42.0
+          check

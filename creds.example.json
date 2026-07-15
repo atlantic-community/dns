@@ -1,0 +1,10 @@
+{
+  "none": {
+    "TYPE": "NONE"
+  },
+  "primary": {
+    "TYPE": "CLOUDFLAREAPI",
+    "apitoken": "$DNSCONTROL_API_TOKEN"
+  }
+}
+

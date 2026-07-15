@@ -1,0 +1,42 @@
+name: Apply DNS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-dns
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: production-dns
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create runtime credentials
+        env:
+          DNSCONTROL_CREDS: ${{ secrets.DNSCONTROL_CREDS }}
+        run: |
+          test -n "$DNSCONTROL_CREDS"
+          printf '%s' "$DNSCONTROL_CREDS" > creds.json
+          chmod 600 creds.json
+      - name: Show proposed changes
+        run: >-
+          docker run --rm
+          -v "$PWD:/dns"
+          -w /dns
+          ghcr.io/dnscontrol/dnscontrol:4.42.0
+          preview --creds creds.json --full
+      - name: Apply proposed changes
+        run: >-
+          docker run --rm
+          -v "$PWD:/dns"
+          -w /dns
+          ghcr.io/dnscontrol/dnscontrol:4.42.0
+          push --creds creds.json --full
