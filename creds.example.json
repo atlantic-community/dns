@@ -5,6 +5,9 @@
   "primary": {
     "TYPE": "CLOUDFLAREAPI",
     "apitoken": "$DNSCONTROL_API_TOKEN"
+  },
+  "cloudflare_1hack_eu": {
+    "TYPE": "CLOUDFLAREAPI",
+    "apitoken": "$DNSCONTROL_1HACK_EU_API_TOKEN"
   }
 }
-

@@ -22,6 +22,10 @@ DNS records are changed through pull requests. Contributors do not need access t
      "primary": {
        "TYPE": "CLOUDFLAREAPI",
        "apitoken": "the-real-token"
+     },
+     "cloudflare_1hack_eu": {
+       "TYPE": "CLOUDFLAREAPI",
+       "apitoken": "the-separate-1hack.eu-token"
      }
    }
    ```
@@ -34,6 +38,8 @@ DNS records are changed through pull requests. Contributors do not need access t
    - prevent direct pushes and force pushes, including for administrators if desired.
 
 The `NONE` registrar is intentional: DNSControl manages records but cannot change the domain's parent nameserver delegation. Registrar automation can be added separately later.
+
+Each Cloudflare account has its own credential entry and zone-scoped token. The `primary` token manages `atlantic.community`; `cloudflare_1hack_eu` manages only `1hack.eu`.
 
 ## Everyday changes
 
