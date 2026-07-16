@@ -4,6 +4,9 @@ D("1hack.eu", REG_NONE,
   DnsProvider(DNS_PRIMARY),
   DefaultTTL(3000),
 
+  ALIAS("@", "1hack-web.1hack-eu.workers.dev.", CF_PROXY_ON),
+  CNAME("www", "1hack-web.1hack-eu.workers.dev.", CF_PROXY_ON),
+
   // Migadu mail discovery and DKIM.
   CNAME("autoconfig", "autoconfig.migadu.com.", TTL(1), CF_PROXY_OFF),
   CNAME("key1._domainkey", "key1.1hack.eu._domainkey.migadu.com.", TTL(1), CF_PROXY_OFF),
