@@ -1,7 +1,7 @@
 // Imported from Cloudflare on 2026-07-16.
 // Apex SOA and NS records are managed by Cloudflare and intentionally omitted.
 D("1hack.eu", REG_NONE,
-  DnsProvider(DNS_1HACK_EU),
+  DnsProvider(DNS_PRIMARY),
   DefaultTTL(3000),
 
   // Migadu mail discovery and DKIM.
