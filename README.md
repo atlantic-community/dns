@@ -1,49 +1,100 @@
 # Atlantic community DNS
 
-The source of truth for Atlantic community domains, managed with [DNSControl](https://dnscontrol.org/). Today the repository is prepared for `atlantic.community`; each future domain gets its own file under `domains/`.
+This repository is the source of truth for DNS records managed by the Atlantic community. It uses [DNSControl](https://dnscontrol.org/) to apply the configuration to Cloudflare.
 
-DNS records are changed through pull requests. Contributors do not need access to the DNS provider's dashboard or API credentials. Maintainers review and merge changes; GitHub Actions then applies the reviewed state using credentials stored in a protected environment.
+Managed domains:
 
-## Current status
+- `atlantic.community`
+- `1hack.eu`
 
-`atlantic.community` is active in the configuration as a new, empty Cloudflare zone. Add its desired records to `domains/atlantic.community.js` through pull requests. DNSControl is authoritative, so every domain file must always contain the complete desired record set.
+Each domain has its own file under `domains/`. The root `dnsconfig.js` defines the registrar and DNS provider, then loads every domain file.
 
-## One-time setup for maintainers
+## How changes reach Cloudflare
 
-1. Initialize this directory as a Git repository and push it to GitHub.
-2. Confirm that the `atlantic.community` zone exists in Cloudflare.
-3. Create a read/write API token limited to the managed DNS zones. Do not grant account-wide access when the provider supports narrower permissions.
-4. In the GitHub repository, create an environment named `production-dns`. Add required reviewers who are allowed to approve DNS deployments.
-5. Add an environment secret named `DNSCONTROL_CREDS`. Its value must be the complete provider-specific `creds.json`, for example:
+DNS changes normally go through a pull request:
 
-   ```json
-   {
-     "none": { "TYPE": "NONE" },
-     "primary": {
-       "TYPE": "CLOUDFLAREAPI",
-       "apitoken": "the-real-token"
-     }
-   }
-   ```
+1. Edit a domain file on a branch.
+2. Run `make check` locally.
+3. Open a pull request and review the configuration diff.
+4. Merge the pull request after approval.
+5. The `Apply DNS` workflow previews the merged configuration and pushes it to Cloudflare through the `production-dns` environment.
 
-6. Create or rename the GitHub team referenced by `.github/CODEOWNERS` and enable branch protection for `main`:
-   - require a pull request;
-   - require at least one approval from Code Owners;
-   - require the `check` status check;
-   - dismiss stale approvals after new commits;
-   - prevent direct pushes and force pushes, including for administrators if desired.
+Pull requests and non-`main` branches run the `Validate DNS` workflow. This checks the DNSControl syntax without contacting Cloudflare. A push to `main` runs the deployment workflow with credentials stored in the `DNSCONTROL_CREDS` environment secret.
 
-The `NONE` registrar is intentional: DNSControl manages records but cannot change the domain's parent nameserver delegation. Registrar automation can be added separately later.
+Local production pushes are disabled by the Makefile. Production changes should come from the audited GitHub Actions workflow.
 
-## Everyday changes
+## Editing a domain
 
-1. Edit the domain file on a branch.
-2. Run `make check`. Run `make preview` as well if you are a maintainer with a local credential.
-3. Open a pull request. A DNS maintainer reviews it and merges it.
-4. The protected `production-dns` job previews the exact merged revision, waits for an authorized environment approval, and then applies it.
+DNSControl treats each domain file as the complete desired state for that zone. A record that exists in Cloudflare but is absent from the file may be deleted during the next deployment.
 
-Local `make push` is intentionally disabled so the audited GitHub workflow remains the normal production path.
+Use relative labels inside a domain:
 
-## Adding another domain
+```javascript
+A("api", "192.0.2.10"),
+TXT("@", "example-verification=value"),
+```
 
-Add a file such as `domains/example.org.js` with a complete `D("example.org", ...)` declaration. Reuse `DNS_PRIMARY` when it uses the same credentials, or declare another provider in `dnsconfig.js` and both credential files. Keep every zone complete and self-contained.
+Targets outside the current domain must be fully qualified and end with a dot:
+
+```javascript
+CNAME("www", "example.pages.dev."),
+MX("@", 10, "mail.example.net."),
+```
+
+Cloudflare proxy state is explicit where it matters:
+
+```javascript
+CNAME("www", "example.workers.dev.", CF_PROXY_ON),
+CNAME("autoconfig", "autoconfig.example.net.", CF_PROXY_OFF),
+```
+
+Use `IGNORE` for records owned by another system. For example, Cloudflare Email Routing owns locked MX and DKIM records for `atlantic.community`; the domain file marks those records as unmanaged so DNSControl does not interfere with them.
+
+## Local commands
+
+The Makefile runs DNSControl 4.42.0 in Docker.
+
+Check syntax and record validity without provider credentials:
+
+```sh
+make check
+```
+
+Preview the difference between the repository and Cloudflare:
+
+```sh
+cp creds.example.json creds.json
+export DNSCONTROL_API_TOKEN="your-zone-scoped-token"
+make preview
+```
+
+The token needs `Zone Read` and `DNS Edit` access to every zone included in the preview. Never commit `creds.json` or an API token.
+
+## Adding a domain
+
+Add a file named `domains/<domain>.js` containing a complete `D(...)` declaration. Use `DNS_PRIMARY` when the existing Cloudflare token has access to the zone:
+
+```javascript
+D("example.org", REG_NONE,
+  DnsProvider(DNS_PRIMARY),
+  DefaultTTL("1h"),
+
+  // Complete desired record set.
+);
+```
+
+If the zone needs different credentials, add another `NewDnsProvider(...)` entry to `dnsconfig.js`, add its non-secret shape to `creds.example.json`, and provide the real credentials through the GitHub environment.
+
+Cloudflare manages the apex SOA and authoritative NS records. Domain files omit those records. `REG_NONE` also prevents DNSControl from changing registrar delegation.
+
+## Repository layout
+
+```text
+dnsconfig.js                    DNSControl entry point and providers
+domains/                        One complete desired-state file per domain
+creds.example.json              Credential structure without secrets
+Makefile                        Local check and preview commands
+.github/workflows/validate.yml  Syntax validation for branches and pull requests
+.github/workflows/deploy.yml    Preview and deployment from main
+.github/CODEOWNERS              DNS review ownership
+```
